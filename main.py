@@ -1,24 +1,26 @@
-import os
+import zipfile
 import pandas as pd
+from io import BytesIO
 
-# Define the folder containing the reports
-folder_path = "./Reportes"
+# Define the path to the ZIP file
+zip_path = "./Reportes.zip"
 
 # Set to store unique movie names
 unique_movies = set()
 
-# Iterate over all Excel files in the folder
-for file in os.listdir(folder_path):
-    if file.endswith(".xlsx") and not file.startswith("~$"):
-        file_path = os.path.join(folder_path, file)
-        print(f"Reading file: {file_path}")
-        
-        # Read the Excel file
-        df = pd.read_excel(file_path, skiprows=3, engine='openpyxl')  # Skip first 3 rows to reach headers
-        
-        # Ensure column B (index 1) exists
-        if df.shape[1] > 1:
-            unique_movies.update(df.iloc[:, 1].dropna().unique())  # Extract unique movie names
+# Open the ZIP file and process each Excel file in memory
+with zipfile.ZipFile(zip_path, "r") as zip_ref:
+    for file_name in zip_ref.namelist():
+        if file_name.endswith(".xlsx") and not file_name.startswith("~$"):
+            with zip_ref.open(file_name) as file:
+                print(f"Processing file: {file_name}")
+                
+                # Read the Excel file from memory
+                df = pd.read_excel(BytesIO(file.read()), skiprows=3, engine='openpyxl')  # Skip first 3 rows to reach headers
+                
+                # Ensure column B (index 1) exists
+                if df.shape[1] > 1:
+                    unique_movies.update(df.iloc[:, 1].dropna().unique())  # Extract unique movie names
 
 # Write the unique movie names to a text file
 output_file = "./unique_movies.txt"
