@@ -93,9 +93,9 @@ def process_zip_file(zip_path):
 def write_output(output_file, movie_attendees):
     try:
         with open(output_file, "w", encoding="utf-8") as f:
-            f.write("Movie, Release Day Attendees, Weekend Attendees, Weekly Attendees (Week 1), Weekly Attendees (Week 2), Total Attendees, Remaining Attendees, Week 1 Percentage, Week 2 Percentage\n")
+            f.write("Película, Dia Inicial, Asistentes 1er Fin de Semana, Asistentes 1er Semana, Porcentaje Semana 1, Asistentes Semanales (Semana 2), Porcentaje Semana 2, Asistentes Restantes, Asistentes Totales\n")
             for movie, attendees in sorted(movie_attendees.items()):
-                f.write(f"{movie}, {attendees[0]}, {attendees[1]}, {attendees[2]}, {attendees[3]}, {attendees[4]}, {attendees[5]}, {attendees[6]:.2f}%, {attendees[7]:.2f}%\n")
+                f.write(f"{movie}, {attendees[0]}, {attendees[1]}, {attendees[2]}, {attendees[6]:.2f}%, {attendees[3]}, {attendees[7]:.2f}%, {attendees[5]}, {attendees[4]}\n")
         print(f"Aggregated movie attendees list saved to {output_file}")
     except IOError as e:
         print(f"Error: Could not write to {output_file}: {e}")
