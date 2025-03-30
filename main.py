@@ -16,7 +16,6 @@ def install_dependencies():
             subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
 # Function to process the ZIP file and aggregate attendee data
-# Function to process the ZIP file and aggregate attendee data
 def process_zip_file(zip_path):
     movie_attendees = {}
 
@@ -44,7 +43,7 @@ def process_zip_file(zip_path):
                                     # Only aggregate for weeks where the week number >= 1
                                     if week_number >= 1:
                                         if movie not in movie_attendees:
-                                            movie_attendees[movie] = [0, 0, 0, 0, 0, 0]  # Initialize all columns
+                                            movie_attendees[movie] = [0, 0, 0, 0, 0]  # Initialize all columns
                                         
                                         # Aggregate the data for each movie
                                         if week_number == 1:
@@ -56,14 +55,6 @@ def process_zip_file(zip_path):
 
                                         # Aggregate total attendees (week >= 1)
                                         movie_attendees[movie][4] += release_day_attendees + weekend_attendees + weekly_attendees
-
-                                # Compute remaining attendees
-                                for movie, attendees in movie_attendees.items():
-                                    total = attendees[4]
-                                    week1 = attendees[2]
-                                    week2 = attendees[3]
-                                    remaining = total - (week1 + week2)
-                                    movie_attendees[movie].append(remaining)
 
                     except Exception as e:
                         print(f"Warning: Could not process {file_name} due to an error: {e}")
@@ -78,15 +69,33 @@ def process_zip_file(zip_path):
         print(f"An unexpected error occurred: {e}")
         sys.exit(1)
 
+    # Calculate remaining attendees and percentages after processing all movies
+    for movie, attendees in movie_attendees.items():
+        total = attendees[4]
+        week1 = attendees[2]
+        week2 = attendees[3]
+        
+        # Calculate remaining attendees
+        remaining = max(0, total - (week1 + week2))
+        movie_attendees[movie].append(remaining)
+
+        # Calculate Week 1 and Week 2 percentages based on total
+        week1_percentage = (week1 / total * 100) if total > 0 else 0
+        week2_percentage = (week2 / total * 100) if total > 0 else 0
+        
+        # Add the percentages to the movie's data
+        movie_attendees[movie].append(week1_percentage)
+        movie_attendees[movie].append(week2_percentage)
+
     return movie_attendees
 
 # Function to write aggregated attendee data to a text file
 def write_output(output_file, movie_attendees):
     try:
         with open(output_file, "w", encoding="utf-8") as f:
-            f.write("Movie, Release Day Attendees, Weekend Attendees, Weekly Attendees (Week 1), Weekly Attendees (Week 2), Total Attendees, Remaining Attendees\n")
+            f.write("Movie, Release Day Attendees, Weekend Attendees, Weekly Attendees (Week 1), Weekly Attendees (Week 2), Total Attendees, Remaining Attendees, Week 1 Percentage, Week 2 Percentage\n")
             for movie, attendees in sorted(movie_attendees.items()):
-                f.write(f"{movie}, {attendees[0]}, {attendees[1]}, {attendees[2]}, {attendees[3]}, {attendees[4]}, {attendees[5]}\n")
+                f.write(f"{movie}, {attendees[0]}, {attendees[1]}, {attendees[2]}, {attendees[3]}, {attendees[4]}, {attendees[5]}, {attendees[6]:.2f}%, {attendees[7]:.2f}%\n")
         print(f"Aggregated movie attendees list saved to {output_file}")
     except IOError as e:
         print(f"Error: Could not write to {output_file}: {e}")
