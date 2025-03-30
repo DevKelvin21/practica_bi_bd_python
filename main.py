@@ -15,9 +15,9 @@ def install_dependencies():
             print(f"Installing missing package: {package}")
             subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
-# Function to process the ZIP file and extract unique movie names
+# Function to process the ZIP file and aggregate attendee data
 def process_zip_file(zip_path):
-    unique_movies = set()
+    movie_attendees = {}
 
     try:
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
@@ -29,11 +29,23 @@ def process_zip_file(zip_path):
 
                             df = pd.read_excel(BytesIO(file.read()), skiprows=3, engine='openpyxl')  # Skip first 3 rows
 
-                            if df.shape[1] > 1:
-                                unique_movies.update(df.iloc[:, 1].dropna().unique())  # Extract unique movie names
+                            if df.shape[1] > 17:
+                                relevant_data = df.iloc[:, [1, 3, 17]].dropna()  # Columns B, D, R
 
-                    except (ValueError, pd.errors.ExcelFileError) as e:
-                        print(f"Warning: Could not process {file_name} due to an Excel error: {e}")
+                                # Filter for release week (week number == 1)
+                                release_week_data = relevant_data[relevant_data.iloc[:, 1] == 1]
+
+                                # Aggregate attendees by movie title
+                                for _, row in release_week_data.iterrows():
+                                    movie = row.iloc[0]
+                                    attendees = row.iloc[2]
+                                    if movie in movie_attendees:
+                                        movie_attendees[movie] += attendees
+                                    else:
+                                        movie_attendees[movie] = attendees
+
+                    except Exception as e:
+                        print(f"Warning: Could not process {file_name} due to an error: {e}")
 
     except FileNotFoundError:
         print(f"Error: The file {zip_path} was not found. Please check the file path and try again.")
@@ -45,15 +57,15 @@ def process_zip_file(zip_path):
         print(f"An unexpected error occurred: {e}")
         sys.exit(1)
 
-    return unique_movies
+    return movie_attendees
 
-# Function to write unique movies to a text file
-def write_output(output_file, unique_movies):
+# Function to write aggregated attendee data to a text file
+def write_output(output_file, movie_attendees):
     try:
         with open(output_file, "w", encoding="utf-8") as f:
-            for movie in sorted(unique_movies, key=lambda x: str(x).lower()):  # Sort alphabetically (case-insensitive)
-                f.write(str(movie) + "\n")
-        print(f"Unique movies list saved to {output_file}")
+            for movie, attendees in sorted(movie_attendees.items()):
+                f.write(f"{movie}: {attendees}\n")
+        print(f"Aggregated movie attendees list saved to {output_file}")
     except IOError as e:
         print(f"Error: Could not write to {output_file}: {e}")
 
@@ -63,17 +75,17 @@ def main():
 
     # Step 2: Define paths
     zip_path = "./Reportes.zip"
-    output_file = "./unique_movies.txt"
+    output_file = "./movie_attendees.txt"
 
     # Step 3: Process ZIP file
     if not os.path.exists(zip_path):
         print(f"Error: The file {zip_path} is missing. Please provide the ZIP file and try again.")
         sys.exit(1)
 
-    unique_movies = process_zip_file(zip_path)
+    movie_attendees = process_zip_file(zip_path)
 
     # Step 4: Write results
-    write_output(output_file, unique_movies)
+    write_output(output_file, movie_attendees)
 
 if __name__ == "__main__":
     main()
